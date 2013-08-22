@@ -1,0 +1,72 @@
+<html>
+	<head>
+		<title>CKEditor Browser</title>
+		<pm:scriptonce type="text/javascript" src="@{typef_web_dir}@/files/static/jquery/jquery.js" />
+		<link rel="stylesheet" type="text/css" href="@{skin_path('/styles/ckeditor/browse.css')}@" />
+	</head>
+	<body>
+		<div id="directory">
+			<h1>
+				<pm:if expr="folder">
+					@{folder}@
+				</pm:if>
+				<pm:else>
+					Home
+				</pm:else>
+			</h1>
+			<pm:if expr="folder">
+				<a href="@{typef_request_path}@?type=@{typef}@" class="home">Home</a><br/>
+			</pm:if>
+			<pm:if expr="count(folders) || count(files)">
+				<ul>
+					<pm:loop name="folders">
+						<li>
+							<a href="@{typef_request_path}@?type=@{type}@&amp;folder=@{folder}@/@{name}@" class="folder">@{name}@</a>
+						</li>
+					</pm:loop>
+					<pm:loop name="files">
+						<li>
+							<a href="#" class="file">@{name}@</a>
+						</li>
+					</pm:loop>
+				</ul>
+			</pm:if>
+		</div>
+		<form id="uploadform" action="@{typef_web_dir}@/ckeditor/upload" method="post" enctype="multipart/form-data">
+			<input type="hidden" name="command" value="BrowserUpload" />
+			<input type="hidden" name="type" value="@{type}@" />
+			<input type="hidden" name="folder" value="@{folder}@" />
+			<input type="hidden" name="CKEditorFuncNum" value="@{globals->request->CKEditorFuncNum}@" />
+			Upload File:
+			<input type="file" name="upload" />
+			<input type="submit" name="" value="Upload" />
+		</form>
+		<form id="folderform" action="@{typef_web_dir}@/ckeditor/browse" method="post">
+			<input type="hidden" name="type" value="@{type}@" />
+			<input type="hidden" name="folder" value="@{folder}@" />
+			<input type="hidden" name="CKEditorFuncNum" value="@{globals->request->CKEditorFuncNum}@" />
+			Create Folder:
+			<input type="text" name="newfolder" />
+			<input type="submit" name="" value="Create" />
+		</form>
+		<script type="text/javascript"><![CDATA[
+			var folder = '@{folder}@';
+			var funcNum = '@{globals->request->CKEditorFuncNum}@';
+			$(document).on('click', 'a.home', function(evt) {
+				evt.preventDefault();
+				$('#directory').load('@{typef_request_path}@?type=@{type}@ #directory');
+				folder = '';
+			});
+			$(document).on('click', 'a.folder', function(evt) {
+				evt.preventDefault();
+				$('#directory').load('@{typef_request_path}@?type=@{type}@&folder=' + folder + '/' + $(this).text() + ' #directory');
+				folder = folder + '/' + $(this).text();
+			});
+			$(document).on('click', 'a.file', function(evt) {
+				evt.preventDefault();
+				window.opener.CKEDITOR.tools.callFunction( funcNum, '@{typef_web_dir}@/files/public/userfiles/@{typef_session_userid}@' + folder + '/' + $(this).text());
+				window.close();
+			});
+		]]></script>
+	</body>
+</html>

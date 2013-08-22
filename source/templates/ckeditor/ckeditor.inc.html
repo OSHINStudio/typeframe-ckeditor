@@ -1,0 +1,94 @@
+<pm:scriptonce src="@{typef_web_dir}@/files/static/jquery/jquery.js"></pm:scriptonce>
+<pm:scriptonce src="@{typef_web_dir}@/files/static/ckeditor/ckeditor.js"></pm:scriptonce>
+<pm:scriptonce src="@{typef_web_dir}@/files/static/ckeditor/adapters/jquery.js"></pm:scriptonce>
+<textarea name="@{name}@" id="@{id}@" class="typef_ckeditor" cols="40" rows="10">@{value}@</textarea>
+<script>
+	$(function() {
+		var obj = {
+			filebrowserBrowseUrl : '@{typef_web_dir}@/ckeditor/browse',
+			filebrowserImageBrowseUrl : '@{typef_web_dir}@/ckeditor/browse?type=image',
+			filebrowserFlashBrowseUrl : '@{typef_web_dir}@/ckeditor/browse?type=flash',
+			filebrowserUploadUrl : '@{typef_web_dir}@/ckeditor/upload',
+			filebrowserImageUploadUrl : '@{typef_web_dir}@/ckeditor/upload?type=image',
+			filebrowserFlashUploadUrl : '@{typef_web_dir}@/ckeditor/upload?type=flash'
+		}
+		obj.baseHref = 'http://@{typef_host}@/';
+		obj.customConfig = '@{typef_web_dir}@/ckeditor/config.js';
+		<pm:if expr="toolbarset">obj['toolbar'] = '@{toolbarset}@';</pm:if>
+		<!--@<pm:if expr="stylesheets">obj['contentsCss'] = @{stylesheets}@;</pm:if>
+		<pm:if expr="cssclass">obj['bodyClass'] = '@{cssclass}@';</pm:if>
+		<pm:if expr="cssid">obj['bodyId'] = '@{cssid}@';</pm:if>@-->
+		<pm:if expr="stylesheets">obj['contentsCss'] = '@{typef_web_dir}@/ckeditor/style?stylesheets=@{urlencode(stylesheets)}@&amp;selector=@{urlencode(editselector)}@';</pm:if>
+		$('#@{id}@').ckeditor(obj);
+		<pm:if expr="editselector">CKEDITOR.instances.@{id}@.editSelector = '@{editselector}@';</pm:if>
+		CKEDITOR.instances.@{id}@.on('focus', function(e) {
+			if (!CKEDITOR.instances.@{id}@.hadFocusAtLeastOnce) {
+				CKEDITOR.instances.@{id}@.resetDirty();
+				<!--@
+					// This timeout is a quick and dirty hack to make sure the
+					// check_id function doesn't check the editor too soon and get a
+					// false dirty result.
+				@-->
+				setTimeout('setInterval("check_@{id}@()", 250);', 1000);
+				CKEDITOR.instances.@{id}@.hadFocusAtLeastOnce = true;
+			}
+		});
+		// Expand relative paths on load
+		var corrected = false;
+		CKEDITOR.instances.@{id}@.on('instanceReady', function(e) {
+			var data = e.editor.getData();
+			var dom = $('&lt;div&gt;' + data + '&lt;/div&gt;');
+			var expanded = '@{typef_web_dir}@/';
+			var compressed = '~/';
+			var compressedRegExp = new RegExp("^" + compressed, 'g');
+			dom.find('*[href], *[src]').each(function() {
+				if ($(this).attr('href')) {
+					var val = $(this).attr('href').replace(new RegExp('%7E', 'g'), '~').replace(compressedRegExp, expanded);
+					$(this).attr('href', val);
+				}
+				if ($(this).attr('src')) {
+					var val = $(this).attr('src').replace(new RegExp('%7E', 'g'), '~').replace(compressedRegExp, expanded);
+					$(this).attr('src', val);
+				}
+			});
+			data = dom.html();
+			data = data.replace(new RegExp('%7E', 'g'), '~');
+			e.editor.setData(data);
+		});
+		// Compress relative paths on submit
+		$('#@{id}@').closest('form').submit(function(e) {
+			var $form = $(this);
+			if ((('' == this.target) || ('_self' == this.target)) &amp;&amp; !corrected) {
+				var button = (e.originalEvent.explicitOriginalTarget ||
+								e.originalEvent.relatedTarget ||
+								document.activeElement);
+				if (button)
+				{
+					$form.append($('&lt;input type="hidden" name=' + button.name +
+												' value=' + button.value + '/&gt;'));
+				}
+				var html = CKEDITOR.instances.@{id}@.getData();
+				<![CDATA[
+				html = html.replace(/%7e/gi, '~');
+				var src = new RegExp('(<[^>]*? src=")@{typef_web_dir}@/', 'gi');
+				var href = new RegExp('(<[^>]*? href=")@{typef_web_dir}@/', 'gi');
+				]]>
+				html = html.replace(src, '$1~/');
+				html = html.replace(href, '$1~/');
+				corrected = true;
+				CKEDITOR.instances.@{id}@.setData(html, function() {
+					$form.submit();
+				});
+				return false;
+			}
+		});
+	});
+	function check_@{id}@() {
+		var instance = CKEDITOR.instances.@{id}@;
+		if (instance) {
+			if (instance.checkDirty()) {
+				$('#@{id}@').change();
+			}
+		}
+	}
+</script>

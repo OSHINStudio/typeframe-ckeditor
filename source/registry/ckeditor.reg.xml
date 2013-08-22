@@ -1,0 +1,5 @@
+<registry>
+	<application name="CKEditor" base="/ckeditor" map="hard">
+		<class name="CKEditor" script="ckeditor.tag.php" />
+	</application>
+</registry>
